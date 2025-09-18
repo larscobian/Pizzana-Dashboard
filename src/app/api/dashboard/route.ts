@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getPizzanaData } from '@/lib/googleSheets';
 import { calculatePercentageChange } from '@/lib/utils';
-import { startOfMonth, endOfMonth, parseISO, format, isWithinInterval, subMonths } from 'date-fns';
+import { startOfMonth, parseISO, format, subMonths } from 'date-fns';
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,8 +14,8 @@ export async function GET(request: NextRequest) {
     const { pedidos, clientes, kpis, productos } = data;
 
     // Calcular rango de fechas basado en el período seleccionado
-    // Usar 2024 como año base ya que los datos están en 2024
-    const currentDate = new Date('2024-12-31');
+    // Usar la fecha actual real
+    const currentDate = new Date();
     let startDate: Date;
     let endDate: Date = currentDate;
 
@@ -24,14 +24,25 @@ export async function GET(request: NextRequest) {
       endDate = new Date(customEnd);
     } else {
       const monthsMap: { [key: string]: number } = {
-        'last_month': 1,
+        '30_days': 1,    // 1 mes
         '3_months': 3,
         '6_months': 6,
-        '12_months': 12,
-        '2_years': 24
+        'current_year': 12,
+        '2_years': 24,
+        'last_month': 1,
+        '12_months': 12
       };
-      const months = monthsMap[period] || 6;
-      startDate = subMonths(startOfMonth(currentDate), months);
+
+      // Para período específicos, calculamos diferente
+      if (period === 'current_month') {
+        startDate = startOfMonth(currentDate);
+        endDate = currentDate;
+      } else if (period === '30_days') {
+        startDate = new Date(currentDate.getTime() - (30 * 24 * 60 * 60 * 1000));
+      } else {
+        const months = monthsMap[period] || 6;
+        startDate = subMonths(startOfMonth(currentDate), months);
+      }
     }
 
 
@@ -145,11 +156,14 @@ export async function GET(request: NextRequest) {
     // Función para generar etiqueta del período
     const getPeriodLabel = () => {
       const periodLabels: { [key: string]: string } = {
+        'current_month': 'Este mes',
+        '30_days': 'Últimos 30 días',
+        '3_months': 'Últimos 3 meses',
+        '6_months': 'Últimos 6 meses',
+        'current_year': 'Último año',
+        '2_years': '2 años',
         'last_month': 'Último Mes',
-        '3_months': 'Últimos 3 Meses',
-        '6_months': 'Últimos 6 Meses',
-        '12_months': 'Últimos 12 Meses',
-        '2_years': 'Últimos 2 Años'
+        '12_months': 'Últimos 12 Meses'
       };
 
       if (period === 'custom') {
@@ -177,8 +191,8 @@ export async function GET(request: NextRequest) {
         totalRevenue: localRevenue,
         totalSales: localOrders.length,
         uniqueClients: uniqueLocalClients,
-        topClients: localClientStats.slice(0, 3),
-        topPizzas: topLocalPizzas.slice(0, 3),
+        topClients: localClientStats.slice(0, 5),
+        topPizzas: topLocalPizzas.slice(0, 5),
         periodLabel: getPeriodLabel(),
       },
       events: {
@@ -267,18 +281,24 @@ function calculateTopPizzas(orders: any[], productos: any[]) {
   const pizzaStats: { [emoji: string]: { count: number; revenue: number } } = {};
 
   orders.forEach(order => {
-    Object.entries(order.pizzas).forEach(([emoji, count]) => {
-      if (count > 0) {
-        const producto = productos.find(p => p.emoji === emoji);
-        const precio = producto?.precio || 0;
+    // Verificar si order.pizzas existe y no está vacío
+    if (order.pizzas && typeof order.pizzas === 'object') {
+      Object.entries(order.pizzas).forEach(([emoji, count]) => {
+        // Asegurar que count sea un número y mayor que 0
+        const numericCount = typeof count === 'number' ? count : parseInt(count as string) || 0;
 
-        if (!pizzaStats[emoji]) {
-          pizzaStats[emoji] = { count: 0, revenue: 0 };
+        if (numericCount > 0) {
+          const producto = productos.find(p => p.emoji === emoji);
+          const precio = producto?.precio || 0;
+
+          if (!pizzaStats[emoji]) {
+            pizzaStats[emoji] = { count: 0, revenue: 0 };
+          }
+          pizzaStats[emoji].count += numericCount;
+          pizzaStats[emoji].revenue += numericCount * precio;
         }
-        pizzaStats[emoji].count += count;
-        pizzaStats[emoji].revenue += count * precio;
-      }
-    });
+      });
+    }
   });
 
   return Object.entries(pizzaStats)

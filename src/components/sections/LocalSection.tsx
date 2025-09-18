@@ -1,10 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/Card';
-import { MetricCard } from '@/components/ui/MetricCard';
 import { DailyRevenueChart } from '@/components/charts/DailyRevenueChart';
-import { ShoppingCart, Users, Crown } from 'lucide-react';
 
 interface LocalData {
   dailyRevenue: Array<{
@@ -35,146 +32,108 @@ interface LocalSectionProps {
 
 export function LocalSection({ data }: LocalSectionProps) {
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">
-          🏪 Datos del Área Local ({data.periodLabel})
-        </h2>
-        <p className="text-gray-600">
-          Operaciones B2C: Delivery y Retiro
-        </p>
+    <div className="space-y-4">
+      {/* Métricas principales */}
+      <div className="grid grid-cols-3 gap-4">
+        {/* Ingresos */}
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-gray-600 mb-1">Ingresos</p>
+              <p className="text-lg font-bold text-gray-900">
+                ${data.totalRevenue.toLocaleString()}
+              </p>
+            </div>
+            <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+              <span className="text-lg">💰</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Ventas */}
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-gray-600 mb-1">Ventas</p>
+              <p className="text-lg font-bold text-gray-900">
+                {data.totalSales}
+              </p>
+            </div>
+            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+              <span className="text-lg">📋</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Clientes Únicos */}
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-gray-600 mb-1">Clientes Únicos</p>
+              <p className="text-lg font-bold text-gray-900">
+                {data.uniqueClients}
+              </p>
+            </div>
+            <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+              <span className="text-lg">👥</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Gráfico de ingresos diarios */}
-      <Card>
-        <CardHeader>
-          <CardTitle>📈 Ingresos por Días Trabajados</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <DailyRevenueChart
-            data={data.dailyRevenue}
-            color="#3b82f6"
-          />
-        </CardContent>
-      </Card>
-
-      {/* Métricas principales */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <MetricCard
-          title="Ingresos Totales"
-          value={`$${data.totalRevenue.toLocaleString()}`}
-          emoji="💰"
-          subtitle="Solo área local"
-        />
-
-        <MetricCard
-          title="Número de Ventas"
-          value={data.totalSales}
-          icon={ShoppingCart}
-          subtitle="Pedidos completados"
-        />
-
-        <MetricCard
-          title="Clientes Únicos"
-          value={data.uniqueClients}
-          icon={Users}
-          subtitle="Del período"
+      <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <h3 className="text-sm font-medium text-gray-900 mb-3">📈 Ingresos Diarios - Local</h3>
+        <DailyRevenueChart
+          data={data.dailyRevenue}
+          color="#f97316"
         />
       </div>
 
-      {/* Top 3 Clientes y Pizzas */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Top 3 Clientes */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Crown className="w-5 h-5 text-yellow-500" />
-              <span>Top 3 Clientes del Período</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {data.topClients.map((client, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                >
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold ${
-                      index === 0 ? 'bg-yellow-500' :
-                      index === 1 ? 'bg-gray-400' :
-                      'bg-orange-500'
-                    }`}>
-                      {index + 1}
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900">{client.name}</p>
-                      <p className="text-sm text-gray-600">
-                        {client.orders} pedidos
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-semibold text-gray-900">
-                      ${client.revenue.toLocaleString()}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      ${(client.revenue / client.orders).toFixed(0)}/pedido
-                    </p>
-                  </div>
+      {/* Top Clientes */}
+      <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <h3 className="text-sm font-medium text-gray-900 mb-3 flex items-center space-x-2">
+          <span>👑</span>
+          <span>Top 5 Clientes</span>
+        </h3>
+        <div className="space-y-3">
+          {data.topClients.map((client, index) => (
+            <div key={index} className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-6 h-6 bg-orange-100 rounded-full flex items-center justify-center">
+                  <span className="text-xs font-medium text-orange-600">{index + 1}</span>
                 </div>
-              ))}
+                <span className="text-sm text-gray-900">{client.name}</span>
+              </div>
+              <span className="text-sm font-medium text-gray-900">
+                ${client.revenue.toLocaleString()}
+              </span>
             </div>
-          </CardContent>
-        </Card>
+          ))}
+        </div>
+      </div>
 
-        {/* Top 3 Pizzas */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <span className="text-xl">🍕</span>
-              <span>Top 3 Pizzas del Período</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {data.topPizzas.map((pizza, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                >
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold ${
-                      index === 0 ? 'bg-yellow-500' :
-                      index === 1 ? 'bg-gray-400' :
-                      'bg-orange-500'
-                    }`}>
-                      {index + 1}
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900 flex items-center space-x-2">
-                        <span className="text-lg">{pizza.emoji}</span>
-                        <span>{pizza.name}</span>
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        {pizza.count} pedidos
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-semibold text-gray-900">
-                      ${pizza.revenue.toLocaleString()}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      Total facturado
-                    </p>
-                  </div>
+      {/* Top Pizzas */}
+      <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <h3 className="text-sm font-medium text-gray-900 mb-3 flex items-center space-x-2">
+          <span>🍕</span>
+          <span>Top 5 Pizzas Más Vendidas</span>
+        </h3>
+        <div className="space-y-3">
+          {data.topPizzas.map((pizza, index) => (
+            <div key={index} className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-6 h-6 bg-orange-100 rounded-full flex items-center justify-center">
+                  <span className="text-xs font-medium text-orange-600">{index + 1}</span>
                 </div>
-              ))}
+                <span className="text-sm text-gray-900">{pizza.name}</span>
+              </div>
+              <span className="text-sm text-gray-600">
+                {pizza.count} vendidas
+              </span>
             </div>
-          </CardContent>
-        </Card>
+          ))}
+        </div>
       </div>
     </div>
   );

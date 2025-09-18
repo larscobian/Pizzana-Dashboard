@@ -1,10 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/Card';
-import { MetricCard } from '@/components/ui/MetricCard';
 import { DailyRevenueChart } from '@/components/charts/DailyRevenueChart';
-import { ShoppingCart, Users, Calendar } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 
 interface EventsData {
   dailyRevenue: Array<{
@@ -26,159 +24,108 @@ export function EventsSection({ data }: EventsSectionProps) {
   const averageTicket = data.totalSales > 0 ? data.totalRevenue / data.totalSales : 0;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">
-          🎪 Datos del Área Eventos ({data.periodLabel})
-        </h2>
-        <p className="text-gray-600">
-          Operaciones B2B: Catering y Eventos Corporativos
-        </p>
+    <div className="space-y-4">
+      {/* Métricas principales */}
+      <div className="grid grid-cols-3 gap-4">
+        {/* Ingresos */}
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-gray-600 mb-1">Ingresos</p>
+              <p className="text-lg font-bold text-gray-900">
+                ${data.totalRevenue.toLocaleString()}
+              </p>
+            </div>
+            <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+              <span className="text-lg">💰</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Ventas */}
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-gray-600 mb-1">Ventas</p>
+              <p className="text-lg font-bold text-gray-900">
+                {data.totalSales}
+              </p>
+            </div>
+            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+              <span className="text-lg">📋</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Clientes Únicos */}
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-gray-600 mb-1">Clientes Únicos</p>
+              <p className="text-lg font-bold text-gray-900">
+                {data.uniqueClients}
+              </p>
+            </div>
+            <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+              <span className="text-lg">👥</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Gráfico de ingresos diarios */}
-      <Card>
-        <CardHeader>
-          <CardTitle>📈 Ingresos por Días Trabajados</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {data.dailyRevenue.length > 0 ? (
-            <DailyRevenueChart
-              data={data.dailyRevenue}
-              color="#f97316"
-            />
-          ) : (
-            <div className="h-64 flex items-center justify-center bg-gray-50 rounded-lg">
-              <div className="text-center">
-                <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-                <p className="text-gray-600">No hay eventos registrados este mes</p>
-              </div>
+      <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <h3 className="text-sm font-medium text-gray-900 mb-3">📈 Ingresos Diarios - Eventos</h3>
+        {data.dailyRevenue.length > 0 ? (
+          <DailyRevenueChart
+            data={data.dailyRevenue}
+            color="#f97316"
+          />
+        ) : (
+          <div className="h-32 flex items-center justify-center bg-gray-50 rounded-lg">
+            <div className="text-center">
+              <Calendar className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+              <p className="text-sm text-gray-600">No hay eventos registrados</p>
             </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Métricas principales */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <MetricCard
-          title="Ingresos Totales"
-          value={`$${data.totalRevenue.toLocaleString()}`}
-          emoji="💰"
-          subtitle="Solo área eventos"
-        />
-
-        <MetricCard
-          title="Número de Eventos"
-          value={data.totalSales}
-          icon={Calendar}
-          subtitle="Eventos completados"
-        />
-
-        <MetricCard
-          title="Clientes B2B"
-          value={data.uniqueClients}
-          icon={Users}
-          subtitle="Empresas atendidas"
-        />
-
-        <MetricCard
-          title="Ticket Promedio"
-          value={`$${averageTicket.toLocaleString()}`}
-          emoji="🎯"
-          subtitle="Por evento"
-        />
+          </div>
+        )}
       </div>
 
-      {/* Insights adicionales */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Estadísticas del período */}
-        <Card>
-          <CardHeader>
-            <CardTitle>📊 Estadísticas del Período</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg">
-                <span className="text-gray-700">Días con eventos:</span>
-                <span className="font-semibold text-gray-900">
-                  {data.dailyRevenue.length} días
-                </span>
+      {/* Próximos Eventos */}
+      <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <h3 className="text-sm font-medium text-gray-900 mb-3 flex items-center space-x-2">
+          <span>📅</span>
+          <span>Próximos Eventos</span>
+        </h3>
+        <div className="space-y-3">
+          {/* Eventos ficticios para mostrar el diseño */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="w-6 h-6 bg-purple-100 rounded-full flex items-center justify-center">
+                <span className="text-xs font-medium text-purple-600">1</span>
               </div>
-
-              <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg">
-                <span className="text-gray-700">Ingresos promedio/día:</span>
-                <span className="font-semibold text-gray-900">
-                  ${data.dailyRevenue.length > 0 ?
-                    (data.totalRevenue / data.dailyRevenue.length).toLocaleString() :
-                    '0'}
-                </span>
-              </div>
-
-              <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg">
-                <span className="text-gray-700">Eventos por cliente:</span>
-                <span className="font-semibold text-gray-900">
-                  {data.uniqueClients > 0 ?
-                    (data.totalSales / data.uniqueClients).toFixed(1) :
-                    '0'} eventos/cliente
-                </span>
+              <div>
+                <p className="text-sm font-medium text-gray-900">Evento Corporativo</p>
+                <p className="text-xs text-gray-600">Empresa XYZ • 50 personas</p>
               </div>
             </div>
-          </CardContent>
-        </Card>
+            <span className="text-xs text-gray-600">Dic 2024</span>
+          </div>
 
-        {/* Comparativa con Local */}
-        <Card>
-          <CardHeader>
-            <CardTitle>🔄 Comparativa B2B vs B2C</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="text-center p-4 border border-orange-200 rounded-lg">
-                <div className="text-2xl mb-2">🎪</div>
-                <div className="text-lg font-semibold text-gray-900">
-                  Eventos (B2B)
-                </div>
-                <div className="text-sm text-gray-600">
-                  Ticket promedio: ${averageTicket.toLocaleString()}
-                </div>
-                <div className="text-sm text-gray-600">
-                  Enfoque: Volumen alto, menos frecuencia
-                </div>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="w-6 h-6 bg-purple-100 rounded-full flex items-center justify-center">
+                <span className="text-xs font-medium text-purple-600">2</span>
               </div>
-
-              <div className="text-center p-4 border border-blue-200 rounded-lg">
-                <div className="text-2xl mb-2">🏪</div>
-                <div className="text-lg font-semibold text-gray-900">
-                  Local (B2C)
-                </div>
-                <div className="text-sm text-gray-600">
-                  Ticket promedio: Variable
-                </div>
-                <div className="text-sm text-gray-600">
-                  Enfoque: Volumen menor, alta frecuencia
-                </div>
+              <div>
+                <p className="text-sm font-medium text-gray-900">Cumpleaños Infantil</p>
+                <p className="text-xs text-gray-600">Familia García • 25 personas</p>
               </div>
             </div>
-          </CardContent>
-        </Card>
+            <span className="text-xs text-gray-600">Dic 2024</span>
+          </div>
+        </div>
       </div>
-
-      {/* Mensaje motivacional si no hay eventos */}
-      {data.totalSales === 0 && (
-        <Card className="border-orange-200 bg-orange-50">
-          <CardContent className="p-6 text-center">
-            <div className="text-4xl mb-4">🚀</div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              ¡Oportunidad de Crecimiento!
-            </h3>
-            <p className="text-gray-600">
-              Este mes no se registraron eventos. Considera estrategias de marketing B2B
-              para captar nuevos clientes corporativos y expandir este canal de ingresos.
-            </p>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }

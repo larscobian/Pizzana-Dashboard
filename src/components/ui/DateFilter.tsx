@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { subMonths, format, startOfMonth } from 'date-fns';
 
-export type DateFilterPeriod = 'last_month' | '3_months' | '6_months' | '12_months' | '2_years' | 'custom';
+export type DateFilterPeriod = 'current_month' | '30_days' | '3_months' | '6_months' | 'current_year' | '2_years' | 'custom';
 
 interface DateFilterOption {
   value: DateFilterPeriod;
@@ -18,10 +18,11 @@ interface DateFilterProps {
 }
 
 const dateFilterOptions: DateFilterOption[] = [
-  { value: 'last_month', label: 'Último mes', months: 1 },
+  { value: 'current_month', label: 'Este mes', months: 0 },
+  { value: '30_days', label: 'Últimos 30 días', months: 1 },
   { value: '3_months', label: 'Últimos 3 meses', months: 3 },
   { value: '6_months', label: 'Últimos 6 meses', months: 6 },
-  { value: '12_months', label: 'Últimos 12 meses', months: 12 },
+  { value: 'current_year', label: 'Último año', months: 12 },
   { value: '2_years', label: 'Últimos 2 años', months: 24 },
   { value: 'custom', label: 'Personalizado', months: 0 },
 ];
@@ -98,7 +99,10 @@ export function DateFilter({
           <p className="text-sm text-blue-700">
             📅 Mostrando datos desde {' '}
             <strong>
-              {format(subMonths(startOfMonth(new Date()), dateFilterOptions.find(opt => opt.value === selectedPeriod)?.months || 1), 'dd/MM/yyyy')}
+              {selectedPeriod === 'current_month'
+                ? format(startOfMonth(new Date()), 'dd/MM/yyyy')
+                : format(subMonths(startOfMonth(new Date()), dateFilterOptions.find(opt => opt.value === selectedPeriod)?.months || 1), 'dd/MM/yyyy')
+              }
             </strong>
             {' '} hasta {' '}
             <strong>{format(new Date(), 'dd/MM/yyyy')}</strong>
@@ -127,6 +131,13 @@ export function getDateRangeFromPeriod(period: DateFilterPeriod, customStart?: s
     return {
       startDate: customStart ? new Date(customStart) : subMonths(now, 1),
       endDate: customEnd ? new Date(customEnd) : now,
+    };
+  }
+
+  if (period === 'current_month') {
+    return {
+      startDate: startOfMonth(now),
+      endDate: now,
     };
   }
 
