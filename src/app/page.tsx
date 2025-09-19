@@ -5,6 +5,7 @@ import { PageLoadingSpinner } from '@/components/layout/LoadingSpinner';
 import { ErrorState } from '@/components/layout/ErrorState';
 import { LocalSection } from '@/components/sections/LocalSection';
 import { EventsSection } from '@/components/sections/EventsSection';
+import { WorkingDaysSlider } from '@/components/ui/WorkingDaysSlider';
 import { CandlestickChart } from '@/components/charts/CandlestickChart';
 import { DateFilterPeriod } from '@/components/ui/DateFilter';
 
@@ -16,6 +17,29 @@ interface DashboardData {
     eventRevenue: number;
     localPercentage: number;
     eventPercentage: number;
+    operationRate: number;
+    workingDaysData: {
+      year: number;
+      month: number;
+      monthName: string;
+      viernes: number;
+      sabados: number;
+      totalPossible: number;
+      actualWorked: number;
+      rate: number;
+      workingDaysDetail: {
+        date: string;
+        day: number;
+        dayOfWeek: 'friday' | 'saturday';
+        weekOfMonth: number;
+        worked: boolean;
+        hasLocal: boolean;
+        hasEvents: boolean;
+        ordersCount: number;
+        localOrders: number;
+        eventOrders: number;
+      }[];
+    }[];
     candlestickData: any[];
     periodLabel: string;
     startDate: string;
@@ -192,7 +216,7 @@ export default function DashboardPage() {
             <span className="text-sm font-medium text-gray-900">Resumen General</span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             {/* Ingresos Totales */}
             <div className="bg-white rounded-lg border border-gray-200 p-6">
               <div className="flex items-center justify-between">
@@ -248,6 +272,28 @@ export default function DashboardPage() {
                 </div>
               </div>
             </div>
+
+            {/* Tasa de Operación */}
+            <div className="bg-white rounded-lg border border-gray-200 p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">Tasa de Operación</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {data.general.operationRate.toFixed(1)}%
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    Viernes y sábados trabajados
+                  </p>
+                </div>
+                <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+                  data.general.operationRate >= 80 ? 'bg-green-100' :
+                  data.general.operationRate >= 60 ? 'bg-yellow-100' :
+                  'bg-red-100'
+                }`}>
+                  <span className="text-2xl">📅</span>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Gráfico de Evolución */}
@@ -269,14 +315,30 @@ export default function DashboardPage() {
             <LocalSection data={data.local} />
           </div>
 
-          {/* Sección Eventos */}
-          <div>
-            <div className="flex items-center space-x-2 mb-4">
-              <span className="text-sm text-gray-600">🏠</span>
-              <span className="text-sm font-medium text-gray-900">Eventos</span>
-              <span className="text-xs text-gray-500">Últimos 6 meses</span>
+          {/* Sección Eventos y Días Trabajados */}
+          <div className="space-y-6">
+            {/* Sección Eventos */}
+            <div>
+              <div className="flex items-center space-x-2 mb-4">
+                <span className="text-sm text-gray-600">🏠</span>
+                <span className="text-sm font-medium text-gray-900">Eventos</span>
+                <span className="text-xs text-gray-500">Últimos 6 meses</span>
+              </div>
+              <EventsSection data={data.events} />
             </div>
-            <EventsSection data={data.events} />
+
+            {/* Sección de Días Trabajados */}
+            <div>
+              <div className="flex items-center space-x-2 mb-4">
+                <span className="text-sm text-gray-600">📅</span>
+                <span className="text-sm font-medium text-gray-900">Días Trabajados</span>
+                <span className="text-xs text-gray-500">{data.general.periodLabel}</span>
+              </div>
+              <WorkingDaysSlider
+                data={data.general.workingDaysData}
+                periodLabel={data.general.periodLabel}
+              />
+            </div>
           </div>
         </div>
       </main>

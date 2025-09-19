@@ -15,9 +15,9 @@ export async function GET(request: NextRequest) {
 
     // Calcular rango de fechas basado en el período seleccionado
     // Usar la fecha actual real
-    const currentDate = new Date();
+    const now = new Date();
     let startDate: Date;
-    let endDate: Date = currentDate;
+    let endDate: Date = now;
 
     if (period === 'custom' && customStart && customEnd) {
       startDate = new Date(customStart);
@@ -35,13 +35,13 @@ export async function GET(request: NextRequest) {
 
       // Para período específicos, calculamos diferente
       if (period === 'current_month') {
-        startDate = startOfMonth(currentDate);
-        endDate = currentDate;
+        startDate = startOfMonth(now);
+        endDate = now;
       } else if (period === '30_days') {
-        startDate = new Date(currentDate.getTime() - (30 * 24 * 60 * 60 * 1000));
+        startDate = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
       } else {
         const months = monthsMap[period] || 6;
-        startDate = subMonths(startOfMonth(currentDate), months);
+        startDate = subMonths(startOfMonth(now), months);
       }
     }
 
@@ -153,6 +153,57 @@ export async function GET(request: NextRequest) {
       };
     });
 
+    // Calcular tasa de operación para el período seleccionado
+    let operationRate = 0;
+    let workingDaysData: any[] = [];
+
+    if (filteredKPIs.length > 0) {
+      let totalPossibleDays = 0;
+      let totalWorkedDays = 0;
+
+      filteredKPIs.forEach(kpi => {
+        const year = parseInt(kpi.ano);
+        const month = parseInt(kpi.mes);
+        const monthPossibleDays = calculatePossibleFridaysAndSaturdays(year, month);
+        const monthWorkedDays = kpi.viernes + kpi.sabados;
+
+        totalPossibleDays += monthPossibleDays;
+        totalWorkedDays += monthWorkedDays;
+
+        // Analizar pedidos reales para este mes
+        const monthOrders = filteredOrders.filter(order => {
+          try {
+            let fecha: Date;
+            if (order.fecha.includes('/')) {
+              const [day, monthStr, yearStr] = order.fecha.split('/');
+              fecha = new Date(parseInt(yearStr), parseInt(monthStr) - 1, parseInt(day));
+            } else {
+              fecha = parseISO(order.fecha);
+            }
+            return fecha.getFullYear() === year && fecha.getMonth() + 1 === month;
+          } catch {
+            return false;
+          }
+        });
+
+        const workingDaysDetail = analyzeWorkingDaysFromOrders(monthOrders, year, month);
+
+        workingDaysData.push({
+          year,
+          month,
+          monthName: new Date(year, month - 1).toLocaleDateString('es-CL', { month: 'long' }),
+          viernes: kpi.viernes,
+          sabados: kpi.sabados,
+          totalPossible: monthPossibleDays,
+          actualWorked: monthWorkedDays,
+          rate: monthPossibleDays > 0 ? (monthWorkedDays / monthPossibleDays) * 100 : 0,
+          workingDaysDetail
+        });
+      });
+
+      operationRate = totalPossibleDays > 0 ? (totalWorkedDays / totalPossibleDays) * 100 : 0;
+    }
+
     // Función para generar etiqueta del período
     const getPeriodLabel = () => {
       const periodLabels: { [key: string]: string } = {
@@ -181,6 +232,8 @@ export async function GET(request: NextRequest) {
         eventRevenue,
         localPercentage,
         eventPercentage,
+        operationRate,
+        workingDaysData,
         candlestickData: chartKPIs,
         periodLabel: getPeriodLabel(),
         startDate: format(startDate, 'yyyy-MM-dd'),
@@ -312,4 +365,78 @@ function calculateTopPizzas(orders: any[], productos: any[]) {
       };
     })
     .sort((a, b) => b.count - a.count);
+}
+
+function calculatePossibleFridaysAndSaturdays(year: number, month: number): number {
+  const firstDay = new Date(year, month - 1, 1);
+  const lastDay = new Date(year, month, 0);
+
+  let fridaysCount = 0;
+  let saturdaysCount = 0;
+
+  for (let day = firstDay.getDate(); day <= lastDay.getDate(); day++) {
+    const currentDay = new Date(year, month - 1, day);
+    const dayOfWeek = currentDay.getDay();
+
+    if (dayOfWeek === 5) { // Viernes
+      fridaysCount++;
+    } else if (dayOfWeek === 6) { // Sábado
+      saturdaysCount++;
+    }
+  }
+
+  return fridaysCount + saturdaysCount;
+}
+
+function analyzeWorkingDaysFromOrders(orders: any[], year: number, month: number) {
+  const firstDay = new Date(year, month - 1, 1);
+  const lastDay = new Date(year, month, 0);
+  const workingDays: any[] = [];
+
+  // Obtener todos los viernes y sábados del mes
+  for (let day = firstDay.getDate(); day <= lastDay.getDate(); day++) {
+    const currentDay = new Date(year, month - 1, day);
+    const dayOfWeek = currentDay.getDay();
+
+    if (dayOfWeek === 5 || dayOfWeek === 6) { // Viernes o Sábado
+      const dateStr = format(currentDay, 'yyyy-MM-dd');
+      const weekOfMonth = Math.ceil(day / 7);
+
+      // Encontrar pedidos de este día específico
+      const dayOrders = orders.filter(order => {
+        try {
+          let orderDate: Date;
+          if (order.fecha.includes('/')) {
+            const [dayStr, monthStr, yearStr] = order.fecha.split('/');
+            orderDate = new Date(parseInt(yearStr), parseInt(monthStr) - 1, parseInt(dayStr));
+          } else {
+            orderDate = parseISO(order.fecha);
+          }
+          return format(orderDate, 'yyyy-MM-dd') === dateStr;
+        } catch {
+          return false;
+        }
+      });
+
+      // Analizar tipos de trabajo en este día
+      const hasLocal = dayOrders.some(order => order.tipo === 'Local');
+      const hasEvents = dayOrders.some(order => order.tipo === 'Evento');
+      const worked = dayOrders.length > 0;
+
+      workingDays.push({
+        date: dateStr,
+        day: day,
+        dayOfWeek: dayOfWeek === 5 ? 'friday' : 'saturday',
+        weekOfMonth,
+        worked,
+        hasLocal,
+        hasEvents,
+        ordersCount: dayOrders.length,
+        localOrders: dayOrders.filter(o => o.tipo === 'Local').length,
+        eventOrders: dayOrders.filter(o => o.tipo === 'Evento').length
+      });
+    }
+  }
+
+  return workingDays;
 }
