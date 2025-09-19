@@ -28,11 +28,12 @@ interface CandlestickData {
 
 interface CandlestickChartProps {
   data: CandlestickData[];
+  onPeriodChange?: (period: ChartPeriod) => void;
 }
 
 type ChartPeriod = 'months' | 'weeks' | 'days';
 
-export function CandlestickChart({ data }: CandlestickChartProps) {
+export function CandlestickChart({ data, onPeriodChange }: CandlestickChartProps) {
   const [selectedPeriod, setSelectedPeriod] = useState<ChartPeriod>('months');
 
   // Verificar restricciones de datos basado en el rango de datos disponibles
@@ -72,6 +73,9 @@ export function CandlestickChart({ data }: CandlestickChartProps) {
       return;
     }
     setSelectedPeriod(period);
+    if (onPeriodChange) {
+      onPeriodChange(period);
+    }
   };
   // Función para formatear el mes a formato "Sept. 2025"
   const formatMonthLabel = (monthString: string) => {

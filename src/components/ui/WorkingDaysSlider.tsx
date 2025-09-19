@@ -139,19 +139,19 @@ export function WorkingDaysSlider({ data, periodLabel }: WorkingDaysSliderProps)
         <div className="space-y-4">
           {/* Estadísticas del mes actual */}
           <div className="grid grid-cols-4 gap-4 text-center">
-            <div>
+            <div className="bg-white rounded-lg p-4 border border-gray-200">
               <p className="text-2xl font-bold text-blue-600">{currentMonth.viernes}</p>
               <p className="text-xs text-gray-600">Viernes</p>
             </div>
-            <div>
+            <div className="bg-white rounded-lg p-4 border border-gray-200">
               <p className="text-2xl font-bold text-orange-600">{currentMonth.sabados}</p>
               <p className="text-xs text-gray-600">Sábados</p>
             </div>
-            <div>
+            <div className="bg-white rounded-lg p-4 border border-gray-200">
               <p className="text-2xl font-bold text-gray-800">{currentMonth.actualWorked}/{currentMonth.totalPossible}</p>
               <p className="text-xs text-gray-600">Total</p>
             </div>
-            <div>
+            <div className="bg-white rounded-lg p-4 border border-gray-200">
               <p className={`text-2xl font-bold ${
                 currentMonth.rate >= 80 ? 'text-green-600' :
                 currentMonth.rate >= 60 ? 'text-yellow-600' :
@@ -214,17 +214,6 @@ export function WorkingDaysSlider({ data, periodLabel }: WorkingDaysSliderProps)
             ))}
           </div>
 
-          {/* Leyenda */}
-          <div className="text-xs text-gray-600 space-y-1 border-t pt-3">
-            <div className="grid grid-cols-3 gap-2 text-center">
-              <span>🏪 Local</span>
-              <span>🏠 Eventos</span>
-              <span>❌ No trabajó</span>
-            </div>
-            <div className="text-center text-xs text-gray-500">
-              Un día puede tener ambos tipos de trabajo
-            </div>
-          </div>
 
           {/* Indicador de posición */}
           {data.length > 1 && (

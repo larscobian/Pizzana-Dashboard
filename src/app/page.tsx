@@ -73,6 +73,9 @@ export default function DashboardPage() {
   const [customStartDate, setCustomStartDate] = useState<string>('');
   const [customEndDate, setCustomEndDate] = useState<string>('');
 
+  // Estado del período del gráfico
+  const [chartPeriod, setChartPeriod] = useState<'months' | 'weeks' | 'days'>('months');
+
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
@@ -81,6 +84,7 @@ export default function DashboardPage() {
       // Construir URL con parámetros de filtro
       const url = new URL('/api/dashboard', window.location.origin);
       url.searchParams.set('period', selectedPeriod);
+      url.searchParams.set('chartPeriod', chartPeriod);
 
       if (selectedPeriod === 'custom') {
         if (customStartDate) url.searchParams.set('startDate', customStartDate);
@@ -116,7 +120,7 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [selectedPeriod, customStartDate, customEndDate]);
+  }, [selectedPeriod, customStartDate, customEndDate, chartPeriod]);
 
   useEffect(() => {
     fetchData();
@@ -128,6 +132,15 @@ export default function DashboardPage() {
 
   const handlePeriodChange = (period: DateFilterPeriod) => {
     setSelectedPeriod(period);
+  };
+
+  const handleCustomDateChange = (startDate: string, endDate: string) => {
+    setCustomStartDate(startDate);
+    setCustomEndDate(endDate);
+  };
+
+  const handleChartPeriodChange = (period: 'months' | 'weeks' | 'days') => {
+    setChartPeriod(period);
   };
 
   if (loading && !data) {
@@ -207,6 +220,30 @@ export default function DashboardPage() {
               </button>
             ))}
           </div>
+
+          {/* Fechas personalizadas */}
+          {selectedPeriod === 'custom' && (
+            <div className="mt-4 flex items-center space-x-4 bg-white p-4 rounded-lg border border-gray-200">
+              <div className="flex items-center space-x-2">
+                <label className="text-sm text-gray-600">Desde:</label>
+                <input
+                  type="date"
+                  value={customStartDate}
+                  onChange={(e) => handleCustomDateChange(e.target.value, customEndDate)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-gray-900"
+                />
+              </div>
+              <div className="flex items-center space-x-2">
+                <label className="text-sm text-gray-600">Hasta:</label>
+                <input
+                  type="date"
+                  value={customEndDate}
+                  onChange={(e) => handleCustomDateChange(customStartDate, e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-gray-900"
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Resumen General */}
@@ -226,9 +263,13 @@ export default function DashboardPage() {
                     ${data.general.totalRevenue.toLocaleString()}
                   </p>
                   <p className={`text-sm ${
+                    data.general.revenueChange === 0 ? 'text-gray-500' :
                     data.general.revenueChange >= 0 ? 'text-green-600' : 'text-red-600'
                   }`}>
-                    {data.general.revenueChange >= 0 ? '+' : ''}{data.general.revenueChange.toFixed(1)}% vs período anterior
+                    {data.general.revenueChange === 0
+                      ? 'Sin datos del período anterior'
+                      : `${data.general.revenueChange >= 0 ? '+' : ''}${data.general.revenueChange.toFixed(1)}% vs período anterior`
+                    }
                   </p>
                 </div>
                 <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
@@ -278,7 +319,11 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600 mb-1">Tasa de Operación</p>
-                  <p className="text-2xl font-bold text-gray-900">
+                  <p className={`text-2xl font-bold ${
+                    data.general.operationRate > 75 ? 'text-green-600' :
+                    data.general.operationRate >= 51 ? 'text-yellow-600' :
+                    'text-red-600'
+                  }`}>
                     {data.general.operationRate.toFixed(1)}%
                   </p>
                   <p className="text-sm text-gray-600">
@@ -286,8 +331,8 @@ export default function DashboardPage() {
                   </p>
                 </div>
                 <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                  data.general.operationRate >= 80 ? 'bg-green-100' :
-                  data.general.operationRate >= 60 ? 'bg-yellow-100' :
+                  data.general.operationRate > 75 ? 'bg-green-100' :
+                  data.general.operationRate >= 51 ? 'bg-yellow-100' :
                   'bg-red-100'
                 }`}>
                   <span className="text-2xl">📅</span>
@@ -299,7 +344,10 @@ export default function DashboardPage() {
           {/* Gráfico de Evolución */}
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <h3 className="text-sm font-medium text-gray-900 mb-4">Evolución de Ingresos</h3>
-            <CandlestickChart data={data.general.candlestickData} />
+            <CandlestickChart
+              data={data.general.candlestickData}
+              onPeriodChange={handleChartPeriodChange}
+            />
           </div>
         </div>
 

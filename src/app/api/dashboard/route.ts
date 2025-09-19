@@ -9,6 +9,7 @@ export async function GET(request: NextRequest) {
     const period = searchParams.get('period') || '6_months';
     const customStart = searchParams.get('startDate');
     const customEnd = searchParams.get('endDate');
+    const chartPeriod = searchParams.get('chartPeriod') || 'months';
 
     const data = await getPizzanaData();
     const { pedidos, clientes, kpis, productos } = data;
@@ -128,6 +129,8 @@ export async function GET(request: NextRequest) {
     // Filtrar KPIs según el período seleccionado (últimos N meses desde la fecha actual)
     const filteredKPIs = kpis.filter(kpi => {
       const kpiDate = new Date(parseInt(kpi.ano), parseInt(kpi.mes) - 1, 1);
+      // Para rango personalizado, usar las fechas exactas
+      // Para otros períodos, usar el rango calculado
       return kpiDate >= startDate && kpiDate <= endDate;
     }).sort((a, b) => {
       const dateA = new Date(parseInt(a.ano), parseInt(a.mes) - 1, 1);
@@ -135,23 +138,31 @@ export async function GET(request: NextRequest) {
       return dateA.getTime() - dateB.getTime();
     });
 
-    // Usar todos los KPIs filtrados para el gráfico (no solo 6 meses)
-    const chartKPIs = filteredKPIs.map((kpi, index, array) => {
-      const prevKPI = array[index - 1];
-      const changePercent = prevKPI ? calculatePercentageChange(kpi.ingresos_total, prevKPI.ingresos_total) : 0;
+    // Generar datos del gráfico según el período seleccionado
+    let chartKPIs;
+    if (chartPeriod === 'days') {
+      chartKPIs = generateDailyChartData(filteredOrders, startDate, endDate);
+    } else if (chartPeriod === 'weeks') {
+      chartKPIs = generateWeeklyChartData(filteredOrders, startDate, endDate);
+    } else {
+      // Usar datos de KPIs para vista mensual
+      chartKPIs = filteredKPIs.map((kpi, index, array) => {
+        const prevKPI = array[index - 1];
+        const changePercent = prevKPI ? calculatePercentageChange(kpi.ingresos_total, prevKPI.ingresos_total) : 0;
 
-      return {
-        month: `${kpi.mes}/${kpi.ano}`,
-        total: kpi.ingresos_total,
-        local: kpi.ingresos_local,
-        eventos: kpi.ingresos_eventos,
-        feria: kpi.ingresos_feria,
-        otros: kpi.ingresos_otros,
-        changePercent,
-        localPercent: kpi.ingresos_total > 0 ? (kpi.ingresos_local / kpi.ingresos_total) * 100 : 0,
-        eventPercent: kpi.ingresos_total > 0 ? (kpi.ingresos_eventos / kpi.ingresos_total) * 100 : 0,
-      };
-    });
+        return {
+          month: `${kpi.mes}/${kpi.ano}`,
+          total: kpi.ingresos_total,
+          local: kpi.ingresos_local,
+          eventos: kpi.ingresos_eventos,
+          feria: kpi.ingresos_feria,
+          otros: kpi.ingresos_otros,
+          changePercent,
+          localPercent: kpi.ingresos_total > 0 ? (kpi.ingresos_local / kpi.ingresos_total) * 100 : 0,
+          eventPercent: kpi.ingresos_total > 0 ? (kpi.ingresos_eventos / kpi.ingresos_total) * 100 : 0,
+        };
+      });
+    }
 
     // Calcular tasa de operación para el período seleccionado
     let operationRate = 0;
@@ -439,4 +450,136 @@ function analyzeWorkingDaysFromOrders(orders: any[], year: number, month: number
   }
 
   return workingDays;
+}
+
+function generateDailyChartData(orders: any[], startDate: Date, endDate: Date) {
+  const dailyData: { [date: string]: { local: number; eventos: number; feria: number; otros: number } } = {};
+
+  // Agregar todos los pedidos por día
+  orders.forEach(order => {
+    try {
+      let orderDate: Date;
+      if (order.fecha.includes('/')) {
+        const [day, month, year] = order.fecha.split('/');
+        orderDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      } else {
+        orderDate = parseISO(order.fecha);
+      }
+
+      if (!isNaN(orderDate.getTime())) {
+        const dateKey = format(orderDate, 'yyyy-MM-dd');
+
+        if (!dailyData[dateKey]) {
+          dailyData[dateKey] = { local: 0, eventos: 0, feria: 0, otros: 0 };
+        }
+
+        if (order.tipo === 'Local') {
+          dailyData[dateKey].local += order.total;
+        } else if (order.tipo === 'Evento') {
+          dailyData[dateKey].eventos += order.total;
+        } else if (order.tipo === 'Feria') {
+          dailyData[dateKey].feria += order.total;
+        } else {
+          dailyData[dateKey].otros += order.total;
+        }
+      }
+    } catch (error) {
+      // Skip invalid dates
+    }
+  });
+
+  // Convertir a array ordenado con cambios porcentuales
+  return Object.entries(dailyData)
+    .map(([date, data], index, array) => {
+      const total = data.local + data.eventos + data.feria + data.otros;
+      const prevData = array[index - 1];
+      const prevTotal = prevData ?
+        prevData[1].local + prevData[1].eventos + prevData[1].feria + prevData[1].otros : 0;
+
+      return {
+        month: format(parseISO(date), 'dd/MM'),
+        total,
+        local: data.local,
+        eventos: data.eventos,
+        feria: data.feria,
+        otros: data.otros,
+        changePercent: calculatePercentageChange(total, prevTotal),
+        localPercent: total > 0 ? (data.local / total) * 100 : 0,
+        eventPercent: total > 0 ? (data.eventos / total) * 100 : 0,
+      };
+    })
+    .sort((a, b) => {
+      const dateA = new Date(a.month.split('/').reverse().join('-'));
+      const dateB = new Date(b.month.split('/').reverse().join('-'));
+      return dateA.getTime() - dateB.getTime();
+    });
+}
+
+function generateWeeklyChartData(orders: any[], startDate: Date, endDate: Date) {
+  const weeklyData: { [weekKey: string]: { local: number; eventos: number; feria: number; otros: number; startDate: Date } } = {};
+
+  // Agrupar pedidos por semana
+  orders.forEach(order => {
+    try {
+      let orderDate: Date;
+      if (order.fecha.includes('/')) {
+        const [day, month, year] = order.fecha.split('/');
+        orderDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      } else {
+        orderDate = parseISO(order.fecha);
+      }
+
+      if (!isNaN(orderDate.getTime())) {
+        // Calcular el inicio de la semana (lunes)
+        const dayOfWeek = orderDate.getDay();
+        const diff = orderDate.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+        const weekStart = new Date(orderDate.setDate(diff));
+        const weekKey = format(weekStart, 'yyyy-MM-dd');
+
+        if (!weeklyData[weekKey]) {
+          weeklyData[weekKey] = { local: 0, eventos: 0, feria: 0, otros: 0, startDate: weekStart };
+        }
+
+        if (order.tipo === 'Local') {
+          weeklyData[weekKey].local += order.total;
+        } else if (order.tipo === 'Evento') {
+          weeklyData[weekKey].eventos += order.total;
+        } else if (order.tipo === 'Feria') {
+          weeklyData[weekKey].feria += order.total;
+        } else {
+          weeklyData[weekKey].otros += order.total;
+        }
+      }
+    } catch (error) {
+      // Skip invalid dates
+    }
+  });
+
+  // Convertir a array ordenado con cambios porcentuales
+  return Object.entries(weeklyData)
+    .map(([weekKey, data], index, array) => {
+      const total = data.local + data.eventos + data.feria + data.otros;
+      const prevData = array[index - 1];
+      const prevTotal = prevData ?
+        prevData[1].local + prevData[1].eventos + prevData[1].feria + prevData[1].otros : 0;
+
+      return {
+        month: `Sem. ${format(data.startDate, 'dd/MM')}`,
+        total,
+        local: data.local,
+        eventos: data.eventos,
+        feria: data.feria,
+        otros: data.otros,
+        changePercent: calculatePercentageChange(total, prevTotal),
+        localPercent: total > 0 ? (data.local / total) * 100 : 0,
+        eventPercent: total > 0 ? (data.eventos / total) * 100 : 0,
+      };
+    })
+    .sort((a, b) => {
+      const dateStrA = a.month.split(' ')[1]; // Extraer "dd/MM"
+      const dateStrB = b.month.split(' ')[1];
+      const dateA = new Date(dateStrA.split('/').reverse().join('-'));
+      const dateB = new Date(dateStrB.split('/').reverse().join('-'));
+      return dateA.getTime() - dateB.getTime();
+    });
 }

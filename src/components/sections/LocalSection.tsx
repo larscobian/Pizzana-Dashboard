@@ -96,18 +96,29 @@ export function LocalSection({ data }: LocalSectionProps) {
           <span>👑</span>
           <span>Top 5 Clientes</span>
         </h3>
-        <div className="space-y-3">
+        <div className="space-y-4">
           {data.topClients.map((client, index) => (
-            <div key={index} className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-6 h-6 bg-orange-100 rounded-full flex items-center justify-center">
-                  <span className="text-xs font-medium text-orange-600">{index + 1}</span>
+            <div key={index}>
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
+                    <span className="text-sm font-medium text-orange-600">{index + 1}</span>
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-gray-900">{client.name}</div>
+                    <div className="text-xs text-gray-600">{client.orders} pedidos</div>
+                  </div>
                 </div>
-                <span className="text-sm text-gray-900">{client.name}</span>
+                <div className="text-right">
+                  <div className="text-sm font-medium text-gray-900">
+                    ${client.revenue.toLocaleString()}
+                  </div>
+                  <div className="text-xs text-gray-600">Total gastado</div>
+                </div>
               </div>
-              <span className="text-sm font-medium text-gray-900">
-                ${client.revenue.toLocaleString()}
-              </span>
+              {index < data.topClients.length - 1 && (
+                <div className="border-b border-gray-200 mx-2"></div>
+              )}
             </div>
           ))}
         </div>
@@ -119,18 +130,29 @@ export function LocalSection({ data }: LocalSectionProps) {
           <span>🍕</span>
           <span>Top 5 Pizzas Más Vendidas</span>
         </h3>
-        <div className="space-y-3">
+        <div className="space-y-4">
           {data.topPizzas.map((pizza, index) => (
-            <div key={index} className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-6 h-6 bg-orange-100 rounded-full flex items-center justify-center">
-                  <span className="text-xs font-medium text-orange-600">{index + 1}</span>
+            <div key={index}>
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
+                    <span className="text-sm font-medium text-orange-600">{index + 1}</span>
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-gray-900">{pizza.name}</div>
+                    <div className="text-xs text-gray-600">{pizza.count} vendidas</div>
+                  </div>
                 </div>
-                <span className="text-sm text-gray-900">{pizza.name}</span>
+                <div className="text-right">
+                  <div className="text-sm font-medium text-gray-900">
+                    ${pizza.revenue.toLocaleString()}
+                  </div>
+                  <div className="text-xs text-gray-600">Total recaudado</div>
+                </div>
               </div>
-              <span className="text-sm text-gray-600">
-                {pizza.count} vendidas
-              </span>
+              {index < data.topPizzas.length - 1 && (
+                <div className="border-b border-gray-200 mx-2"></div>
+              )}
             </div>
           ))}
         </div>

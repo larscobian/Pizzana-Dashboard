@@ -5,7 +5,7 @@ const auth = new google.auth.GoogleAuth({
     client_email: process.env.GOOGLE_SHEETS_CLIENT_EMAIL,
     private_key: process.env.GOOGLE_SHEETS_PRIVATE_KEY?.replace(/\\n/g, '\n'),
   },
-  scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
+  scopes: ['https://www.googleapis.com/auth/spreadsheets'],
 });
 
 const sheets = google.sheets({ version: 'v4', auth });
@@ -66,6 +66,16 @@ export interface ProductoData {
   precio: number;
   activo: boolean;
   ingredientes: string;
+}
+
+export interface EventoData {
+  id: string;
+  nombre: string;
+  fecha: string;
+  personas: number;
+  direccion?: string;
+  valor?: number;
+  creado_en: string;
 }
 
 export async function getPizzanaData() {
@@ -202,5 +212,153 @@ function processProductos(values: any[][]): ProductoData[] {
     activo: row[3] === 'SI',
     ingredientes: row[4] || '',
   }));
+}
+
+// Funciones para manejo de eventos
+export async function getEventos(): Promise<EventoData[]> {
+  try {
+    const spreadsheetId = process.env.PIZZANA_SPREADSHEET_ID;
+
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: 'AGENDA EVENTOS!A:G',
+    });
+
+    const values = response.data.values || [];
+
+    if (values.length < 2) {
+      return [];
+    }
+
+    return values.slice(1).map(row => ({
+      id: row[0] || '',
+      nombre: row[1] || '',
+      fecha: row[2] || '',
+      personas: parseInt(row[3]) || 0,
+      direccion: row[4] || undefined,
+      valor: row[5] ? parseFloat(row[5]) : undefined,
+      creado_en: row[6] || '',
+    }));
+  } catch (error) {
+    console.error('Error fetching eventos:', error);
+    throw error;
+  }
+}
+
+export async function createEvento(evento: Omit<EventoData, 'id' | 'creado_en'>): Promise<EventoData> {
+  try {
+    const spreadsheetId = process.env.PIZZANA_SPREADSHEET_ID;
+    const id = Date.now().toString();
+    const creado_en = new Date().toISOString();
+
+    const newEvento: EventoData = {
+      ...evento,
+      id,
+      creado_en,
+    };
+
+    await sheets.spreadsheets.values.append({
+      spreadsheetId,
+      range: 'AGENDA EVENTOS!A:G',
+      valueInputOption: 'RAW',
+      requestBody: {
+        values: [[
+          newEvento.id,
+          newEvento.nombre,
+          newEvento.fecha,
+          newEvento.personas,
+          newEvento.direccion || '',
+          newEvento.valor || '',
+          newEvento.creado_en,
+        ]],
+      },
+    });
+
+    return newEvento;
+  } catch (error) {
+    console.error('Error creating evento:', error);
+    throw error;
+  }
+}
+
+export async function updateEvento(id: string, evento: Partial<EventoData>): Promise<EventoData> {
+  try {
+    const spreadsheetId = process.env.PIZZANA_SPREADSHEET_ID;
+
+    // Primero obtener todos los eventos para encontrar la fila
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: 'AGENDA EVENTOS!A:G',
+    });
+
+    const values = response.data.values || [];
+    const rowIndex = values.findIndex((row, index) => index > 0 && row[0] === id);
+
+    if (rowIndex === -1) {
+      throw new Error('Evento no encontrado');
+    }
+
+    const currentRow = values[rowIndex];
+    const updatedEvento: EventoData = {
+      id: currentRow[0],
+      nombre: evento.nombre || currentRow[1],
+      fecha: evento.fecha || currentRow[2],
+      personas: evento.personas || parseInt(currentRow[3]) || 0,
+      direccion: evento.direccion !== undefined ? evento.direccion : currentRow[4],
+      valor: evento.valor !== undefined ? evento.valor : (currentRow[5] ? parseFloat(currentRow[5]) : undefined),
+      creado_en: currentRow[6],
+    };
+
+    await sheets.spreadsheets.values.update({
+      spreadsheetId,
+      range: `AGENDA EVENTOS!A${rowIndex + 1}:G${rowIndex + 1}`,
+      valueInputOption: 'RAW',
+      requestBody: {
+        values: [[
+          updatedEvento.id,
+          updatedEvento.nombre,
+          updatedEvento.fecha,
+          updatedEvento.personas,
+          updatedEvento.direccion || '',
+          updatedEvento.valor || '',
+          updatedEvento.creado_en,
+        ]],
+      },
+    });
+
+    return updatedEvento;
+  } catch (error) {
+    console.error('Error updating evento:', error);
+    throw error;
+  }
+}
+
+export async function deleteEvento(id: string): Promise<void> {
+  try {
+    const spreadsheetId = process.env.PIZZANA_SPREADSHEET_ID;
+
+    // Obtener todos los eventos para encontrar la fila
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: 'AGENDA EVENTOS!A:G',
+    });
+
+    const values = response.data.values || [];
+    const rowIndex = values.findIndex((row, index) => index > 0 && row[0] === id);
+
+    if (rowIndex === -1) {
+      throw new Error('Evento no encontrado');
+    }
+
+    // Limpiar la fila
+    await sheets.spreadsheets.values.clear({
+      spreadsheetId,
+      range: `AGENDA EVENTOS!A${rowIndex + 1}:G${rowIndex + 1}`,
+    });
+
+  } catch (error) {
+    console.error('Error deleting evento:', error);
+    throw error;
+  }
 }
 

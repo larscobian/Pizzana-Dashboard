@@ -3,6 +3,7 @@
 import React from 'react';
 import { DailyRevenueChart } from '@/components/charts/DailyRevenueChart';
 import { Calendar } from 'lucide-react';
+import { EventsManager } from './EventsManager';
 
 interface EventsData {
   dailyRevenue: Array<{
@@ -91,41 +92,8 @@ export function EventsSection({ data }: EventsSectionProps) {
         )}
       </div>
 
-      {/* Próximos Eventos */}
-      <div className="bg-white rounded-lg border border-gray-200 p-4">
-        <h3 className="text-sm font-medium text-gray-900 mb-3 flex items-center space-x-2">
-          <span>📅</span>
-          <span>Próximos Eventos</span>
-        </h3>
-        <div className="space-y-3">
-          {/* Eventos ficticios para mostrar el diseño */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-6 h-6 bg-purple-100 rounded-full flex items-center justify-center">
-                <span className="text-xs font-medium text-purple-600">1</span>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-900">Evento Corporativo</p>
-                <p className="text-xs text-gray-600">Empresa XYZ • 50 personas</p>
-              </div>
-            </div>
-            <span className="text-xs text-gray-600">Dic 2024</span>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-6 h-6 bg-purple-100 rounded-full flex items-center justify-center">
-                <span className="text-xs font-medium text-purple-600">2</span>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-900">Cumpleaños Infantil</p>
-                <p className="text-xs text-gray-600">Familia García • 25 personas</p>
-              </div>
-            </div>
-            <span className="text-xs text-gray-600">Dic 2024</span>
-          </div>
-        </div>
-      </div>
+      {/* Próximos Eventos - Funcional */}
+      <EventsManager />
     </div>
   );
 }

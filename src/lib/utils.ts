@@ -1,5 +1,8 @@
 export function calculatePercentageChange(current: number, previous: number): number {
-  if (previous === 0) return current > 0 ? 100 : 0;
+  if (previous === 0) {
+    // Si no hay datos del período anterior, no mostrar cambio
+    return 0;
+  }
   return ((current - previous) / previous) * 100;
 }
 
