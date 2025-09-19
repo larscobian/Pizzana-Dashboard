@@ -340,7 +340,7 @@ export function EventsManager({ onEventsChange }: EventsManagerProps) {
           <div className="text-center py-6">
             <Calendar className="w-8 h-8 text-gray-400 mx-auto mb-2" />
             <p className="text-sm text-gray-600">No hay eventos próximos</p>
-            <p className="text-xs text-gray-500">Haz clic en "Agregar" para crear uno</p>
+            <p className="text-xs text-gray-500">Haz clic en &quot;Agregar&quot; para crear uno</p>
           </div>
         )}
       </div>

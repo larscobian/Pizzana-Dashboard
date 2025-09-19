@@ -166,7 +166,7 @@ export async function GET(request: NextRequest) {
 
     // Calcular tasa de operación para el período seleccionado
     let operationRate = 0;
-    let workingDaysData: any[] = [];
+    const workingDaysData: any[] = [];
 
     if (filteredKPIs.length > 0) {
       let totalPossibleDays = 0;
