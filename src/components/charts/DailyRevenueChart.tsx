@@ -14,7 +14,10 @@ import {
 interface DailyRevenueData {
   date: string;
   revenue: number;
+  pizzaCount: number;
   formattedDate: string;
+  dayOfWeek: string;
+  fullDate: string;
 }
 
 interface DailyRevenueChartProps {
@@ -28,9 +31,13 @@ export function DailyRevenueChart({ data, color = '#3b82f6' }: DailyRevenueChart
       const data = payload[0].payload;
       return (
         <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
-          <p className="font-medium text-gray-900">{data.formattedDate}</p>
+          <p className="font-medium text-gray-900">{data.fullDate}</p>
+          <p className="text-sm font-medium text-blue-600">{data.dayOfWeek}</p>
           <p className="text-sm text-gray-600">
             Ingresos: ${data.revenue.toLocaleString()}
+          </p>
+          <p className="text-sm text-gray-600">
+            Pizzas vendidas: {data.pizzaCount}
           </p>
         </div>
       );

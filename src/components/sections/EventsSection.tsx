@@ -10,6 +10,8 @@ interface EventsData {
     date: string;
     revenue: number;
     formattedDate: string;
+    dayOfWeek: string;
+    fullDate: string;
   }>;
   totalRevenue: number;
   totalSales: number;

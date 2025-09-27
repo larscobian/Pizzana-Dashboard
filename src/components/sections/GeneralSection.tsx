@@ -17,7 +17,9 @@ interface WorkingDaysData {
 
 interface GeneralData {
   totalRevenue: number;
+  totalNetIncome: number;
   revenueChange: number;
+  netIncomeChange: number;
   localRevenue: number;
   eventRevenue: number;
   localPercentage: number;
@@ -35,7 +37,6 @@ interface GeneralSectionProps {
 }
 
 export function GeneralSection({ data }: GeneralSectionProps) {
-  console.log('GeneralSection data:', data);
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -49,13 +50,21 @@ export function GeneralSection({ data }: GeneralSectionProps) {
       </div>
 
       {/* Métricas principales */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           title={`Ingresos Totales (${data.periodLabel})`}
           value={`$${data.totalRevenue.toLocaleString()}`}
           change={data.revenueChange}
           emoji="💰"
           subtitle="Todas las fuentes de ingresos"
+        />
+
+        <MetricCard
+          title={`Ingresos Neto (${data.periodLabel})`}
+          value={`$${(data.totalNetIncome || 0).toLocaleString()}`}
+          change={data.netIncomeChange || 0}
+          emoji="💎"
+          subtitle="Beneficio después de costos"
         />
 
         <MetricCard

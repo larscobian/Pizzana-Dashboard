@@ -50,3 +50,5 @@ Thumbs.db
 # Project specific
 pizzana-dashboard-Visual2/
 .claude/
+
+.vercel

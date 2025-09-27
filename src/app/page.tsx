@@ -12,7 +12,9 @@ import { DateFilterPeriod } from '@/components/ui/DateFilter';
 interface DashboardData {
   general: {
     totalRevenue: number;
+    totalNetIncome: number;
     revenueChange: number;
+    netIncomeChange: number;
     localRevenue: number;
     eventRevenue: number;
     localPercentage: number;
@@ -48,6 +50,8 @@ interface DashboardData {
   local: {
     dailyRevenue: any[];
     totalRevenue: number;
+    fridayRevenue: number;
+    saturdayRevenue: number;
     totalSales: number;
     uniqueClients: number;
     topClients: any[];
@@ -253,7 +257,7 @@ export default function DashboardPage() {
             <span className="text-sm font-medium text-gray-900">Resumen General</span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
             {/* Ingresos Totales */}
             <div className="bg-white rounded-lg border border-gray-200 p-6">
               <div className="flex items-center justify-between">
@@ -274,6 +278,30 @@ export default function DashboardPage() {
                 </div>
                 <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
                   <span className="text-2xl">💰</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Ingresos Neto */}
+            <div className="bg-white rounded-lg border border-gray-200 p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">Ingresos Neto</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    ${(data.general.totalNetIncome || 0).toLocaleString()}
+                  </p>
+                  <p className={`text-sm ${
+                    (data.general.netIncomeChange || 0) === 0 ? 'text-gray-500' :
+                    (data.general.netIncomeChange || 0) >= 0 ? 'text-green-600' : 'text-red-600'
+                  }`}>
+                    {(data.general.netIncomeChange || 0) === 0
+                      ? 'Beneficio después de costos'
+                      : `${(data.general.netIncomeChange || 0) >= 0 ? '+' : ''}${(data.general.netIncomeChange || 0).toFixed(1)}% vs período anterior`
+                    }
+                  </p>
+                </div>
+                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                  <span className="text-2xl">💎</span>
                 </div>
               </div>
             </div>
@@ -308,7 +336,7 @@ export default function DashboardPage() {
                     {data.general.eventPercentage.toFixed(0)}% del total
                   </p>
                 </div>
-                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
                   <span className="text-2xl">🏠</span>
                 </div>
               </div>

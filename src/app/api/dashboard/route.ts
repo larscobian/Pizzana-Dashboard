@@ -97,8 +97,11 @@ export async function GET(request: NextRequest) {
 
     // Datos generales del período seleccionado
     const currentPeriodRevenue = filteredOrders.reduce((sum, order) => sum + order.total, 0);
+    const currentPeriodNetIncome = filteredOrders.reduce((sum, order) => sum + order.beneficio, 0);
     const previousPeriodRevenue = previousPeriodOrders.reduce((sum, order) => sum + order.total, 0);
+    const previousPeriodNetIncome = previousPeriodOrders.reduce((sum, order) => sum + order.beneficio, 0);
     const revenueChange = calculatePercentageChange(currentPeriodRevenue, previousPeriodRevenue);
+    const netIncomeChange = calculatePercentageChange(currentPeriodNetIncome, previousPeriodNetIncome);
 
     // Separar local vs eventos en el período seleccionado
     const localOrders = filteredOrders.filter(order => order.tipo === 'Local');
@@ -106,6 +109,37 @@ export async function GET(request: NextRequest) {
 
     const localRevenue = localOrders.reduce((sum, order) => sum + order.total, 0);
     const eventRevenue = eventOrders.reduce((sum, order) => sum + order.total, 0);
+
+    // Calcular ingresos de viernes y sábados para Local
+    const fridayRevenue = localOrders.filter(order => {
+      try {
+        let fecha: Date;
+        if (order.fecha.includes('/')) {
+          const [day, month, year] = order.fecha.split('/');
+          fecha = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        } else {
+          fecha = parseISO(order.fecha);
+        }
+        return !isNaN(fecha.getTime()) && fecha.getDay() === 5; // Viernes = 5
+      } catch {
+        return false;
+      }
+    }).reduce((sum, order) => sum + order.total, 0);
+
+    const saturdayRevenue = localOrders.filter(order => {
+      try {
+        let fecha: Date;
+        if (order.fecha.includes('/')) {
+          const [day, month, year] = order.fecha.split('/');
+          fecha = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        } else {
+          fecha = parseISO(order.fecha);
+        }
+        return !isNaN(fecha.getTime()) && fecha.getDay() === 6; // Sábado = 6
+      } catch {
+        return false;
+      }
+    }).reduce((sum, order) => sum + order.total, 0);
 
     const localPercentage = currentPeriodRevenue > 0 ? (localRevenue / currentPeriodRevenue) * 100 : 0;
     const eventPercentage = currentPeriodRevenue > 0 ? (eventRevenue / currentPeriodRevenue) * 100 : 0;
@@ -150,9 +184,27 @@ export async function GET(request: NextRequest) {
         const prevKPI = array[index - 1];
         const changePercent = prevKPI ? calculatePercentageChange(kpi.ingresos_total, prevKPI.ingresos_total) : 0;
 
+        // Calcular beneficio total para este mes
+        const monthOrders = filteredOrders.filter(order => {
+          try {
+            let fecha: Date;
+            if (order.fecha.includes('/')) {
+              const [day, monthStr, yearStr] = order.fecha.split('/');
+              fecha = new Date(parseInt(yearStr), parseInt(monthStr) - 1, parseInt(day));
+            } else {
+              fecha = parseISO(order.fecha);
+            }
+            return fecha.getFullYear() === parseInt(kpi.ano) && fecha.getMonth() + 1 === parseInt(kpi.mes);
+          } catch {
+            return false;
+          }
+        });
+        const monthNetIncome = monthOrders.reduce((sum, order) => sum + order.beneficio, 0);
+
         return {
           month: `${kpi.mes}/${kpi.ano}`,
           total: kpi.ingresos_total,
+          netIncome: monthNetIncome,
           local: kpi.ingresos_local,
           eventos: kpi.ingresos_eventos,
           feria: kpi.ingresos_feria,
@@ -238,7 +290,9 @@ export async function GET(request: NextRequest) {
     const dashboardData = {
       general: {
         totalRevenue: currentPeriodRevenue,
+        totalNetIncome: currentPeriodNetIncome,
         revenueChange,
+        netIncomeChange,
         localRevenue,
         eventRevenue,
         localPercentage,
@@ -253,6 +307,8 @@ export async function GET(request: NextRequest) {
       local: {
         dailyRevenue: localRevenueByDay,
         totalRevenue: localRevenue,
+        fridayRevenue,
+        saturdayRevenue,
         totalSales: localOrders.length,
         uniqueClients: uniqueLocalClients,
         topClients: localClientStats.slice(0, 5),
@@ -279,7 +335,7 @@ export async function GET(request: NextRequest) {
 }
 
 function calculateDailyRevenue(orders: any[]) {
-  const dailyData: { [date: string]: number } = {};
+  const dailyData: { [date: string]: { revenue: number; pizzaCount: number } } = {};
 
   orders.forEach(order => {
     try {
@@ -304,7 +360,20 @@ function calculateDailyRevenue(orders: any[]) {
       }
 
       const date = format(parsedDate, 'yyyy-MM-dd');
-      dailyData[date] = (dailyData[date] || 0) + order.total;
+      if (!dailyData[date]) {
+        dailyData[date] = { revenue: 0, pizzaCount: 0 };
+      }
+
+      dailyData[date].revenue += order.total;
+
+      // Calculate total pizza count for this order
+      if (order.pizzas && typeof order.pizzas === 'object') {
+        const orderPizzaCount = Object.values(order.pizzas).reduce((sum: number, count: any) => {
+          const numericCount = typeof count === 'number' ? count : parseInt(count as string) || 0;
+          return sum + numericCount;
+        }, 0);
+        dailyData[date].pizzaCount += orderPizzaCount;
+      }
     } catch (error) {
       // Skip orders with invalid dates
       return;
@@ -312,24 +381,37 @@ function calculateDailyRevenue(orders: any[]) {
   });
 
   return Object.entries(dailyData)
-    .map(([date, revenue]) => ({
-      date,
-      revenue,
-      formattedDate: format(parseISO(date), 'dd/MM'),
-    }))
+    .map(([date, data]) => {
+      const parsedDate = parseISO(date);
+      const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+      return {
+        date,
+        revenue: data.revenue,
+        pizzaCount: data.pizzaCount,
+        formattedDate: format(parsedDate, 'dd/MM'),
+        dayOfWeek: dayNames[parsedDate.getDay()],
+        fullDate: format(parsedDate, 'dd/MM/yyyy'),
+      };
+    })
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 }
 
 function calculateTopClients(orders: any[]) {
-  const clientStats: { [client: string]: { revenue: number; orders: number } } = {};
+  const clientStats: { [client: string]: { revenue: number; orders: number; orderHistory: any[] } } = {};
 
   orders.forEach(order => {
     const client = order.nombre_cliente;
     if (!clientStats[client]) {
-      clientStats[client] = { revenue: 0, orders: 0 };
+      clientStats[client] = { revenue: 0, orders: 0, orderHistory: [] };
     }
     clientStats[client].revenue += order.total;
     clientStats[client].orders += 1;
+    clientStats[client].orderHistory.push({
+      fecha: order.fecha,
+      pizzas: order.pizzas,
+      total: order.total,
+      cantidad: Object.values(order.pizzas || {}).reduce((sum: number, count: any) => sum + (typeof count === 'number' ? count : parseInt(count) || 0), 0)
+    });
   });
 
   return Object.entries(clientStats)
@@ -337,12 +419,25 @@ function calculateTopClients(orders: any[]) {
       name,
       revenue: stats.revenue,
       orders: stats.orders,
+      orderHistory: stats.orderHistory.sort((a, b) => {
+        try {
+          const dateA = a.fecha.includes('/') ?
+            new Date(a.fecha.split('/').reverse().join('-')) :
+            new Date(a.fecha);
+          const dateB = b.fecha.includes('/') ?
+            new Date(b.fecha.split('/').reverse().join('-')) :
+            new Date(b.fecha);
+          return dateB.getTime() - dateA.getTime(); // Most recent first
+        } catch {
+          return 0;
+        }
+      }),
     }))
     .sort((a, b) => b.revenue - a.revenue);
 }
 
 function calculateTopPizzas(orders: any[], productos: any[]) {
-  const pizzaStats: { [emoji: string]: { count: number; revenue: number } } = {};
+  const pizzaStats: { [emoji: string]: { count: number; revenue: number; customers: { [customer: string]: number } } } = {};
 
   orders.forEach(order => {
     // Verificar si order.pizzas existe y no está vacío
@@ -356,10 +451,17 @@ function calculateTopPizzas(orders: any[], productos: any[]) {
           const precio = producto?.precio || 0;
 
           if (!pizzaStats[emoji]) {
-            pizzaStats[emoji] = { count: 0, revenue: 0 };
+            pizzaStats[emoji] = { count: 0, revenue: 0, customers: {} };
           }
           pizzaStats[emoji].count += numericCount;
           pizzaStats[emoji].revenue += numericCount * precio;
+
+          // Track customer purchases
+          const customerName = order.nombre_cliente;
+          if (!pizzaStats[emoji].customers[customerName]) {
+            pizzaStats[emoji].customers[customerName] = 0;
+          }
+          pizzaStats[emoji].customers[customerName] += numericCount;
         }
       });
     }
@@ -368,11 +470,19 @@ function calculateTopPizzas(orders: any[], productos: any[]) {
   return Object.entries(pizzaStats)
     .map(([emoji, stats]) => {
       const producto = productos.find(p => p.emoji === emoji);
+
+      // Get top 10 customers for this pizza
+      const topCustomers = Object.entries(stats.customers)
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10);
+
       return {
         emoji,
         name: producto?.nombre || 'Desconocida',
         count: stats.count,
         revenue: stats.revenue,
+        topCustomers,
       };
     })
     .sort((a, b) => b.count - a.count);
@@ -453,7 +563,7 @@ function analyzeWorkingDaysFromOrders(orders: any[], year: number, month: number
 }
 
 function generateDailyChartData(orders: any[], startDate: Date, endDate: Date) {
-  const dailyData: { [date: string]: { local: number; eventos: number; feria: number; otros: number } } = {};
+  const dailyData: { [date: string]: { local: number; eventos: number; feria: number; otros: number; netIncome: number } } = {};
 
   // Agregar todos los pedidos por día
   orders.forEach(order => {
@@ -470,8 +580,10 @@ function generateDailyChartData(orders: any[], startDate: Date, endDate: Date) {
         const dateKey = format(orderDate, 'yyyy-MM-dd');
 
         if (!dailyData[dateKey]) {
-          dailyData[dateKey] = { local: 0, eventos: 0, feria: 0, otros: 0 };
+          dailyData[dateKey] = { local: 0, eventos: 0, feria: 0, otros: 0, netIncome: 0 };
         }
+
+        dailyData[dateKey].netIncome += order.beneficio;
 
         if (order.tipo === 'Local') {
           dailyData[dateKey].local += order.total;
@@ -499,6 +611,7 @@ function generateDailyChartData(orders: any[], startDate: Date, endDate: Date) {
       return {
         month: format(parseISO(date), 'dd/MM'),
         total,
+        netIncome: data.netIncome,
         local: data.local,
         eventos: data.eventos,
         feria: data.feria,
@@ -516,7 +629,7 @@ function generateDailyChartData(orders: any[], startDate: Date, endDate: Date) {
 }
 
 function generateWeeklyChartData(orders: any[], startDate: Date, endDate: Date) {
-  const weeklyData: { [weekKey: string]: { local: number; eventos: number; feria: number; otros: number; startDate: Date } } = {};
+  const weeklyData: { [weekKey: string]: { local: number; eventos: number; feria: number; otros: number; netIncome: number; startDate: Date } } = {};
 
   // Agrupar pedidos por semana
   orders.forEach(order => {
@@ -537,8 +650,10 @@ function generateWeeklyChartData(orders: any[], startDate: Date, endDate: Date) 
         const weekKey = format(weekStart, 'yyyy-MM-dd');
 
         if (!weeklyData[weekKey]) {
-          weeklyData[weekKey] = { local: 0, eventos: 0, feria: 0, otros: 0, startDate: weekStart };
+          weeklyData[weekKey] = { local: 0, eventos: 0, feria: 0, otros: 0, netIncome: 0, startDate: weekStart };
         }
+
+        weeklyData[weekKey].netIncome += order.beneficio;
 
         if (order.tipo === 'Local') {
           weeklyData[weekKey].local += order.total;
@@ -566,6 +681,7 @@ function generateWeeklyChartData(orders: any[], startDate: Date, endDate: Date) 
       return {
         month: `Sem. ${format(data.startDate, 'dd/MM')}`,
         total,
+        netIncome: data.netIncome,
         local: data.local,
         eventos: data.eventos,
         feria: data.feria,

@@ -65,9 +65,10 @@ PIZZANA_SPREADSHEET_ID         # Target spreadsheet ID
 
 ### Data Processing Logic
 - **Pizza tracking**: Uses emoji columns (🌼⚡🌿🧀🥬🍕🤌🍄🌽) for product selection
-- **Business segmentation**: Filters by `tipo` field ("Local" vs "Evento")
+- **Business segmentation**: Filters by `tipo` field ("Local" vs "Evento") - Column X (index 23)
 - **Currency parsing**: Removes `$.,` characters and converts to numbers
 - **Date filtering**: Current vs previous month comparisons using date-fns
+- **Data validation**: Excludes pedidos without valid dates from analytics (logged as "Pedido sin fecha")
 
 ## Component Guidelines
 
@@ -118,9 +119,18 @@ Use consistent loading patterns across components with the `LoadingSpinner` comp
 ## Google Sheets Schema Dependencies
 
 The application expects specific column structures in Google Sheets. Key dependencies:
-- Pizza columns must use exact emoji characters
-- Date formats must be parseable by `parseISO()`
+
+### PEDIDOS Sheet (Columns A-X):
+- Pizza columns must use exact emoji characters (🌼⚡🌿🧀🥬🍕🤌🍄🌽) - Columns F-N
+- Date formats must be parseable by `parseISO()` or DD/MM/YYYY format - Column B
 - Monetary values can include Chilean peso formatting ($, periods, commas)
-- Business type classification via `Tipo` column ("Local"/"Evento")
+- Business type classification via `Tipo` column ("Local"/"Evento") - **Column X (index 23)**
+- Beneficio calculation in Column W (index 22)
+
+### Data Processing Updates:
+- **Fixed column mapping**: `tipo` field now correctly maps to Column X instead of getting monetary values from Column W
+- **Enhanced date validation**: Supports both ISO and DD/MM/YYYY formats with fallback handling
+- **Improved error logging**: Invalid data entries are logged but don't break the application
+- **Currency cleaning**: All monetary fields strip Chilean peso formatting before conversion
 
 When modifying data processing, ensure compatibility with the existing Google Sheets structure used by the PIZZANA business.

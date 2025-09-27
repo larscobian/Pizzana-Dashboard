@@ -122,47 +122,63 @@ function processPedidos(values: any[][]): PedidoData[] {
   console.log('Headers PEDIDOS:', headers);
   console.log('Total filas de pedidos:', values.length - 1);
 
-  return values.slice(1).map((row, index) => {
-    const pizzas: { [emoji: string]: number } = {};
-
-    pizzaColumns.forEach(emoji => {
-      const index = headers.indexOf(emoji);
-      if (index !== -1 && row[index]) {
-        pizzas[emoji] = parseInt(row[index]) || 0;
-      }
+  const validRows = values.slice(1)
+    .filter(row => {
+      // Filtrar filas vacías: debe tener al menos ID, fecha y cliente
+      return row[0] && row[1] && row[2];
     });
 
-    const pedido = {
-      id: row[0] || '',
-      fecha: row[1] || '',
-      nombre_cliente: row[2] || '',
-      whatsapp: row[3] || '',
-      direccion: row[4] || '',
-      pizzas,
-      notas: row[14] || '',
-      metodo: row[15] || '',
-      entrega: row[16] || '',
-      comuna: row[17] || '',
-      pre_total: parseFloat(row[18]?.replace(/[$.,]/g, '') || '0'),
-      delivery: parseFloat(row[19]?.replace(/[$.,]/g, '') || '0'),
-      comision: parseFloat(row[20]?.replace(/[$.,]/g, '') || '0'),
-      total: parseFloat(row[21]?.replace(/[$.,]/g, '') || '0'),
-      beneficio: parseFloat(row[22]?.replace(/[$.,]/g, '') || '0'), // Nueva columna W
-      tipo: row[23] || '', // Movido a columna X
-    };
+  console.log('Pedidos válidos después del filtro:', validRows.length);
 
-    // Log primeros 3 pedidos para debug
-    if (index < 3) {
-      console.log(`Pedido ${index}:`, {
-        fecha: pedido.fecha,
-        total: pedido.total,
-        tipo: pedido.tipo,
-        cliente: pedido.nombre_cliente
+  return validRows
+    .map((row, index) => {
+      const pizzas: { [emoji: string]: number } = {};
+
+      pizzaColumns.forEach(emoji => {
+        const index = headers.indexOf(emoji);
+        if (index !== -1 && row[index]) {
+          pizzas[emoji] = parseInt(row[index]) || 0;
+        }
       });
-    }
 
-    return pedido;
-  });
+      const pedido = {
+        id: row[0] || '',
+        fecha: row[1] || '',
+        nombre_cliente: row[2] || '',
+        whatsapp: row[3] || '',
+        direccion: row[4] || '',
+        pizzas,
+        notas: row[14] || '',
+        metodo: row[15] || '',
+        entrega: row[16] || '',
+        comuna: row[17] || '',
+        pre_total: parseFloat(row[18]?.replace(/[$.,]/g, '') || '0'),
+        delivery: parseFloat(row[19]?.replace(/[$.,]/g, '') || '0'),
+        comision: parseFloat(row[20]?.replace(/[$.,]/g, '') || '0'),
+        total: parseFloat(row[21]?.replace(/[$.,]/g, '') || '0'),
+        beneficio: parseFloat(row[22]?.replace(/[$.,]/g, '') || '0'), // Columna W (índice 22)
+        tipo: row[23] || '', // Columna X (índice 23)
+      };
+
+      // Log primeros 3 pedidos para debug
+      if (index < 3) {
+        console.log(`Pedido ${index}:`, {
+          fecha: pedido.fecha,
+          total: pedido.total,
+          beneficio: pedido.beneficio,
+          tipo: pedido.tipo,
+          cliente: pedido.nombre_cliente,
+          rawRow: {
+            col22: row[22],
+            col23: row[23],
+            col24: row[24],
+            col25: row[25]
+          }
+        });
+      }
+
+      return pedido;
+    });
 }
 
 function processClientes(values: any[][]): ClienteData[] {

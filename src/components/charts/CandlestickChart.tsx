@@ -17,6 +17,7 @@ import { formatCurrency } from '@/lib/utils';
 interface CandlestickData {
   month: string;
   total: number;
+  netIncome: number;
   local: number;
   eventos: number;
   feria: number;
@@ -110,6 +111,9 @@ export function CandlestickChart({ data, onPeriodChange }: CandlestickChartProps
           <div className="space-y-1">
             <p className="text-sm text-gray-800">
               <span className="font-medium text-gray-900">Total:</span> {formatCurrency(data.total)}
+            </p>
+            <p className="text-sm text-gray-800">
+              <span className="font-medium text-gray-900">Neto:</span> {formatCurrency(data.netIncome || 0)}
             </p>
             <p className="text-sm text-gray-800">
               <span className="font-medium text-gray-900">Cambio:</span>
