@@ -89,18 +89,16 @@ export async function getPizzanaData() {
         'CLIENTES!A:J',
         'KPIs!A:P',
         'PRODUCTOS!A:E',
-        'DASHBOARD_GENERAL!A:E',
       ],
     });
 
-    const [pedidosRaw, clientesRaw, kpisRaw, productosRaw, dashboardRaw] = response.data.valueRanges || [];
+    const [pedidosRaw, clientesRaw, kpisRaw, productosRaw] = response.data.valueRanges || [];
 
     return {
       pedidos: processPedidos(pedidosRaw?.values || []),
       clientes: processClientes(clientesRaw?.values || []),
       kpis: processKPIs(kpisRaw?.values || []),
       productos: processProductos(productosRaw?.values || []),
-      dashboard: dashboardRaw?.values || [],
     };
   } catch (error) {
     console.error('Error fetching Google Sheets data:', error);
