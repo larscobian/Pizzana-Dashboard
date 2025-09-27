@@ -9,6 +9,7 @@ interface EventsData {
   dailyRevenue: Array<{
     date: string;
     revenue: number;
+    pizzaCount: number;
     formattedDate: string;
     dayOfWeek: string;
     fullDate: string;
