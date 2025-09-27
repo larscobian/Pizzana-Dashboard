@@ -25,6 +25,7 @@ export interface PedidoData {
   delivery: number;
   comision: number;
   total: number;
+  beneficio: number;
   tipo: string;
 }
 
@@ -63,9 +64,12 @@ export interface KPIData {
 export interface ProductoData {
   nombre: string;
   emoji: string;
+  costo: number;
   precio: number;
-  activo: boolean;
   ingredientes: string;
+  activo: boolean;
+  beneficio: number;
+  beneficio_porcentaje: number;
 }
 
 export interface EventoData {
@@ -143,7 +147,8 @@ function processPedidos(values: any[][]): PedidoData[] {
       delivery: parseFloat(row[19]?.replace(/[$.,]/g, '') || '0'),
       comision: parseFloat(row[20]?.replace(/[$.,]/g, '') || '0'),
       total: parseFloat(row[21]?.replace(/[$.,]/g, '') || '0'),
-      tipo: row[22] || '',
+      beneficio: parseFloat(row[22]?.replace(/[$.,]/g, '') || '0'), // Nueva columna W
+      tipo: row[23] || '', // Movido a columna X
     };
 
     // Log primeros 3 pedidos para debug
@@ -204,11 +209,14 @@ function processProductos(values: any[][]): ProductoData[] {
   if (values.length < 2) return [];
 
   return values.slice(1).map(row => ({
-    nombre: row[0] || '',
-    emoji: row[1] || '',
-    precio: parseFloat(row[2]?.replace(/[$.,]/g, '') || '0'),
-    activo: row[3] === 'SI',
-    ingredientes: row[4] || '',
+    nombre: row[0] || '',           // A: NOMBRE PIZZA
+    emoji: row[1] || '',            // B: EMOJI
+    costo: parseFloat(row[2]?.replace(/[$.,]/g, '') || '0'),      // C: COSTO
+    precio: parseFloat(row[3]?.replace(/[$.,]/g, '') || '0'),     // D: VENTA
+    ingredientes: row[4] || '',     // E: INGREDIENTES
+    activo: row[5] === 'SI',        // F: ACTIVO
+    beneficio: parseFloat(row[6]?.replace(/[$.,]/g, '') || '0'),  // G: BENEFICIO
+    beneficio_porcentaje: parseFloat(row[7]?.replace(/[%.,]/g, '') || '0'), // H: BENEFICIO %
   }));
 }
 
